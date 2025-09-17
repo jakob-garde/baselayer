@@ -145,19 +145,38 @@ struct MPool {
 
 
 #define MPOOL_MIN_BLOCK_SIZE 64
-static MPool pool_zero;
 
 
 MPool PoolCreate(u32 block_size_min, u32 nblocks) {
     assert(nblocks > 1);
 
-    MPool p = pool_zero;;
+    MPool p = {};
     p.block_size = MPOOL_MIN_BLOCK_SIZE * (block_size_min / MPOOL_MIN_BLOCK_SIZE + 1);
     p.nblocks = nblocks;
     p.lock = (u64) &p; // this number is a lifetime constant
 
     p.mem = (u8*) MemoryReserve(p.block_size * p.nblocks);
     MemoryProtect(p.mem, p.block_size * p.nblocks);
+
+    MPoolBlockHdr *freeblck = &p.free_list;
+    for (u32 i = 0; i < nblocks; ++i) {
+        freeblck->next = (MPoolBlockHdr*) (p.mem + i * p.block_size);
+        freeblck->lock = p.lock;
+        freeblck = freeblck->next;
+    }
+    freeblck->next = NULL;
+
+    return p;
+}
+
+MPool PoolCreate(MArena *a_dest, u32 block_size_min, u32 nblocks) {
+    assert(nblocks > 1);
+
+    MPool p = {};
+    p.block_size = MPOOL_MIN_BLOCK_SIZE * (block_size_min / MPOOL_MIN_BLOCK_SIZE + 1);
+    p.nblocks = nblocks;
+    p.lock = (u64) &p; // this "magic" number is a lifetime constant, checked at allocation time
+    p.mem = (u8*) ArenaAlloc(a_dest, p.block_size * p.nblocks);
 
     MPoolBlockHdr *freeblck = &p.free_list;
     for (u32 i = 0; i < nblocks; ++i) {
