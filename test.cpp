@@ -166,8 +166,8 @@ void TestSorting() {
 void TestStringHelpers() {
     printf("\nTestStringHelpers\n");
 
-    printf("\nlook for .h hiles in ../:\n");
-    StrLst *fs = GetFiles((char*) "../", "h");
+    printf("\nlook for .h hiles in ./:\n");
+    StrLst *fs = GetFiles((char*) ".", "h");
     StrLstPrint(fs);
 
     printf("\nlook for .cmake file in .:\n");

@@ -31,20 +31,20 @@ int main (int argc, char **argv) {
         StrInit();
 
         StrLst *f_sources = NULL;
-        f_sources = StrLstPush("../src/base.h", f_sources);
-        f_sources = StrLstPush("../src/profile.h", f_sources);
-        f_sources = StrLstPush("../src/memory.h", f_sources);
-        f_sources = StrLstPush("../src/string.h", f_sources);
-        f_sources = StrLstPush("../src/hash.h", f_sources);
-        f_sources = StrLstPush("../src/utils.h", f_sources);
-        f_sources = StrLstPush("../src/platform.h", f_sources);
-        f_sources = StrLstPush("../src/init.h", f_sources);
-        f_sources = StrLstPush("../src/baselayer.h", f_sources);
+        f_sources = StrLstPush("src/base.h", f_sources);
+        f_sources = StrLstPush("src/profile.h", f_sources);
+        f_sources = StrLstPush("src/memory.h", f_sources);
+        f_sources = StrLstPush("src/string.h", f_sources);
+        f_sources = StrLstPush("src/hash.h", f_sources);
+        f_sources = StrLstPush("src/utils.h", f_sources);
+        f_sources = StrLstPush("src/platform.h", f_sources);
+        f_sources = StrLstPush("src/init.h", f_sources);
+        f_sources = StrLstPush("src/baselayer.h", f_sources);
         f_sources = f_sources->first;
 
         StrBuff buff = StrBuffInit();
         StrBuffPrint1K(&buff, "/*\n", 0);
-        StrBuffAppend(&buff, LoadTextFile(a_files, "../LICENSE"));
+        StrBuffAppend(&buff, LoadTextFile(a_files, "LICENSE"));
         StrBuffPrint1K(&buff, "*/\n\n\n", 0);
         StrBuffPrint1K(&buff, "#ifndef __JG_BASELAYER_H__\n", 0);
         StrBuffPrint1K(&buff, "#define __JG_BASELAYER_H__\n\n\n", 0);
