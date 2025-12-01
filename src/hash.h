@@ -26,39 +26,32 @@ u64 Hash64(u64 x) {
 #endif
 
 
-u64 HashStringValue(Str skey) {
-    u32 key4 = 0;
-    for (u32 i = 0; i < skey.len; ++i) {
-        u32 val = skey.str[i] << i % 4;
-        key4 += val;
-    }
+inline
+u64 HashDJB2(Str skey) {
+    // djb2 - see http://www.cse.yorku.ca/~oz/hash.html
+    u64 hash = 5381;
 
-    u64 hashval = Hash(key4);
-    return hashval;
-}
-
-u32 HashStringValue(Str key, u32 mod) {
-    u32 key4 = 0;
-    for (u32 i = 0; i < key.len; ++i) {
-        u32 val = key.str[i] << i % 4;
-        key4 += val;
-    }
-    u32 slot = Hash(key4) % mod;
-    return slot;
-}
-
-u64 HashStringValue(const char *key) {
-    u32 key4 = 0;
+    s32 c;
     u32 i = 0;
-    while ( key[i] != '\0' ) {
-        u32 val = key[i] << i % 4;
-        key4 += val;
-
-        ++i;
+    while (i < skey.len) {
+        c = skey.str[i];
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+        i++;
     }
-    u64 hashval = Hash(key4);
-    return hashval;
+    return hash;
 }
+
+inline
+u64 HashStringValue(Str key) {
+    u64 hash = Hash( HashDJB2(key) );
+    return hash;
+}
+
+inline
+u64 HashStringValue(const char *key) {
+    return HashStringValue( StrL(key) );
+}
+
 
 
 // TODO: also be a GPA?
@@ -201,7 +194,7 @@ void DictPut(Dict *dct, Str key, void *val, u32 sz = 0) {
         sz = dct->sz_val;
     }
 
-    u32 slot = HashStringValue(key, dct->slots.len);
+    u32 slot = HashStringValue(key) % dct->slots.len;
     if (dct->debug_print) {
         printf("slot: %u\n", slot);
     }
@@ -220,7 +213,7 @@ void DictPut(Dict *dct, const char *key, void *val, u32 sz = 0) {
 }
 
 void *DictGet(Dict *dct, Str key) {
-    u32 slot = HashStringValue(key, dct->slots.len);
+    u32 slot = HashStringValue(key) % dct->slots.len;
     DictKeyVal *kv = (DictKeyVal *) dct->slots.lst[slot];
 
     while (kv) {
