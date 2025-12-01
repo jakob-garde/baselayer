@@ -373,6 +373,36 @@ void TestStrBuffer() {
 }
 
 
+void TestHashString() {
+    printf("TestHashStrings\n\n");
+
+    u64 val;
+    val = HashStringValue("PSDbefore_guides_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("l_mon_source_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("PSDbefore_curve_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("PSDafter_curve_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("ydist_fluxpos_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("PSD_fluxpos_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("xdist_flux_pos_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("PSD_fluxposB_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("lambda_in_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("PSD_sample_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("lambda_sample_blitarea");
+    printf("%lu\n", val);
+    val = HashStringValue("Detector_blitarea");
+    printf("%lu\n", val);
+}
+
 void Test() {
     printf("Running baselayer tests ...\n\n");
 
@@ -384,4 +414,5 @@ void Test() {
     TestMemoryPool();
     TestPoolAllocatorAgain();
     TestStrBuffer();
+    TestHashString();
 }
