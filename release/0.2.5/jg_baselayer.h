@@ -532,7 +532,7 @@ inline
 void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     if (a->fixed_size) {
         assert(a->fixed_size == a->committed && "ArenaAlloc: fixed_size misconfigured");
-        assert(a->fixed_size <= a->used + len && "ArenaAlloc: fixed_size exceeded");
+        assert(a->fixed_size >= a->used + len && "ArenaAlloc: fixed_size exceeded");
     }
 
     else if (a->committed < a->used + len) {
