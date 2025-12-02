@@ -72,7 +72,7 @@ Str StrAlloc(u32 len) {
     return Str { buff, len };
 }
 
-Str StrIntern(Str s) { // NOTE: not an actual interna at this time, but just pushes the string to a the current lifetime arena
+Str StrIntern(Str s) { // NOTE: not an actual interna, it just pushes the string to a the current lifetime arena
     Str s_dest = {};
     if (s.len) {
         s_dest = StrAlloc(g_a_string_interns, s.len);

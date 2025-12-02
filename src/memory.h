@@ -6,14 +6,6 @@
 #include <cassert>
 
 
-// NOTE: The pool de-alloc function does not check whether the element was ever allocated. I am not
-// sure how to do this - perhaps with an occupation list. However tis adds complexity tremendously.
-// Maybe with a hash list, seems overkill. Having a no-use header for every element either messes
-// up alignment or compactness.
-// TODO: arena de-allocation that shrinks commited memory (useful when e.g. closing large files)
-// TODO: scratch arenas
-
-
 //
 // platform dependent:
 
@@ -73,7 +65,6 @@ void *ArenaAlloc(MArena *a, u64 len, bool zerod = true) {
     else if (a->committed < a->used + len) {
         assert(a->committed >= a->used);
         u64 diff = a->committed - a->used;
-        //u64 amount = (len / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
         u64 amount = ( (len - diff) / ARENA_COMMIT_CHUNK + 1) * ARENA_COMMIT_CHUNK;
         MemoryProtect(a->mem + a->committed, amount );
         a->committed += amount;
@@ -123,10 +114,9 @@ void ArenaEnsureSpace(MArena *a, s32 space_needed) {
 
 
 //
-// Memory pool allocator / slot based allocation impl. using a free-list
+//  Pool allocator / slot based allocation impl. using a free-list to track vacant slots.
 //
-
-// NOTE: Pool indices, if used, are counted from 1, and the value 0 is reserved as the NULL equivalent.
+//  NOTE: Pool indices, if used, are counted from 1, and the value 0 is reserved as the NULL equivalent.
 
 
 struct MPoolBlockHdr {
@@ -318,7 +308,7 @@ MPoolT<T> PoolCreate(u32 nblocks) {
 
 
 //
-//  Array
+//  List & Array
 
 
 template<typename T>
@@ -697,10 +687,6 @@ void SortBubbleU32(List<u32> arr) {
     }
 }
 
-void SortQuickU32() {
-    // TODO: impl.
-}
-
 List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
     List<u32> result = InitList<u32>(a_dest, 0);
     if (arr_a.len == 0 || arr_b.len == 0) {
@@ -717,7 +703,6 @@ List<u32> SetIntersectionU32(MArena *a_dest, List<u32> arr_a, List<u32> arr_b) {
     u32 j_max = arr_b.len - 1;
 
     // fast-forward both arrays to min value
-    // TODO: fast-forward using divide-and-conquer
     u32 a = arr_a.First();
     u32 b = arr_b.First();
     while (a < min) {
