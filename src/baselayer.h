@@ -4,7 +4,7 @@
 
 #define BASELAYER_VERSION_MAJOR 0
 #define BASELAYER_VERSION_MINOR 2
-#define BASELAYER_VERSION_PATCH 5
+#define BASELAYER_VERSION_PATCH 6
 
 
 void BaselayerAssertVersion(u32 major, u32 minor, u32 patch) {
