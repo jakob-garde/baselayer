@@ -91,12 +91,8 @@ void MapClear(HashMap *map) {
 
 struct MapIter {
     s32 slot_idx;
-    s32 coll_idx;
-
-    s32 occ_slots_cnt = 0;
-    s32 occ_colliders_cnt = 0;
+    s32 occ_slots_cnt;
 };
-
 
 s64 MapPut(HashMap *map, u64 key, u64 val) {
     u64 len = (u64) map->slots.len;
@@ -168,53 +164,82 @@ u64 MapGet(HashMap *map, u64 key) {
     return 0;
 }
 
-bool MapRemove(HashMap *map, u64 key, void *val) {
+s64 MapGetIndex(HashMap *map, u64 key, s64 *prev_idx) {
+    assert(prev_idx);
+    *prev_idx = -1;
+
     u64 len = (u64) map->slots.len;
 
-    // find the element and its parent, if any
-    KeyVal *slot = map->slots.arr + (key % len); // slot is actually slot_last
-    if (slot->key != 0) {
-        KeyVal *slot_prev = NULL;
+    // check the base slot
+    KeyVal *slot = map->slots.arr + (key % len);
+    if (slot->key == key) {
+        return slot - map->slots.arr;
+    }
 
-        // get
-        do {
-            if (slot->key == key) {
-                break;
-            }
-            slot_prev = slot;
-            slot = slot + slot->next;
+    // iterate the collision chain
+    while (slot->next) {
+        *prev_idx = slot - map->slots.arr;
+        slot = slot + slot->next;
+
+        if (slot->key == key) {
+            return slot - map->slots.arr;
         }
-        while (slot->next);
+    }
 
-        // no find
-        if (slot->key != key) {
-            return false;
-        }
+    // no get
+    *prev_idx = -1;
+    return -1;
+}
 
-        // forward prev to next 
-        if (slot_prev && slot->next) {
-            KeyVal *next = slot + slot->next;
-            slot_prev->next = next - slot_prev;
+s64 MapRemove(HashMap *map, u64 key) {
+    u64 len = (u64) map->slots.len;
+    s64 prev_idx;
+    s64 remove_idx = MapGetIndex(map, key, &prev_idx);
 
-            *slot = {};
-        }
-
-        // leak
-        else if (slot->next) {
-            // TODO: re-arrange the collision list instead of producing a leak
-            slot->key = 0;
-            slot->val = 0;
-        }
-
-        return true;
+    if (remove_idx == -1) {
+        return -1;
     }
 
     else {
-        // no find
-        return false;
+        KeyVal *remove = map->slots.arr + remove_idx;
+        assert(remove->key == key);
+
+        if (prev_idx == -1) {
+            if (remove->next == 0) {
+                printf("simple branch\n");
+                *remove = {};
+            }
+            else {
+                KeyVal *next = remove + remove->next;
+                printf("swap branch load %u remove->next: %ld, next->next: %ld\n", map->load, remove->next, next->next);
+                remove->key = next->key;
+                remove->val = next->val;
+                remove->next += next->next;
+                KeyVal *next_next = remove + remove->next;
+                KeyVal *next_next_next = next_next + next_next->next;
+                *next = {};
+
+            }
+        }
+        else {
+            KeyVal *prev = map->slots.arr + prev_idx;
+            assert(prev->next + prev_idx == remove - map->slots.arr);
+
+            if (remove->next) {
+                printf("chain branch a\n");
+                prev->next += remove->next;
+            }
+            else {
+                printf("chain branch b\n");
+                prev->next = 0;
+            }
+            *remove = {};
+        }
+
+        map->load--;
+        return remove_idx;
     }
 }
-
 
 // wrappers
 bool MapPut(HashMap *map, void *key, void *val) {
@@ -229,139 +254,6 @@ bool MapPut(HashMap *map, Str skey, void *val) {
 u64 MapGet(HashMap *map, Str skey) {
     return 0;
 }
-
-
-
-/*
-u64 MapNextVal(HashMap *map, MapIter *iter) {
-    while (iter->slot_idx < (s32) map->slots.len) {
-        KeyVal kv = map->slots.arr[iter->slot_idx++];
-
-        if (kv.val) {
-            iter->occ_slots_cnt++;
-
-            return kv.val;
-        }
-
-    }
-
-    return 0;
-}
-
-bool MapPut(HashMap *map, u64 key, u64 val) {
-    assert(key != 0 && "null ptr can not be used as a key");
-
-    u32 slot = Hash(key) % map->slots.len;
-    HashMapKeyVal *kv_slot = map->slots.lst + slot;
-
-    if (kv_slot->key == 0 || kv_slot->key == key) {
-        if (kv_slot->key == key) {
-            map->noccupants--;
-            map->nresets++;
-        }
-        // new slot or reset value
-        HashMapKeyVal kv;
-        kv.key = key;
-        kv.val = val;
-        kv.chain = kv_slot->chain;
-        map->slots.lst[slot] = kv;
-    }
-    else {
-        // collision
-        map->ncollisions++;
-
-        HashMapKeyVal *collider = kv_slot;
-        while (collider->chain != NULL) {
-            collider = collider->chain;
-        }
-        if (map->colls.len == map->slots.len) {
-            // no more space
-            return false;
-        }
-
-        // put a new collider onto the list
-        HashMapKeyVal kv_new = {};
-        kv_new.key = key;
-        kv_new.val = val;
-
-        collider->chain = map->colls.Add(kv_new);
-    }
-    map->noccupants++;
-    return true;
-}
-inline
-bool MapPut(HashMap *map, void *key, void *val) {
-    return MapPut(map, (u64) key, (u64) val);
-}
-
-inline
-bool MapPut(HashMap *map, u64 key, void *val) {
-    return MapPut(map, key, (u64) val);
-}
-
-inline
-bool MapPut(HashMap *map, Str skey, void *val) {
-    return MapPut(map, HashStringValue(skey), (u64) val);
-}
-
-u64 MapGet(HashMap *map, u64 key) {
-
-    HashMapKeyVal kv_slot = {};
-    if (map->slots.len) {
-
-        u32 slot = Hash(key) % map->slots.len;
-        kv_slot = map->slots.lst[slot];
-    }
-
-    if (kv_slot.key == key) {
-        return kv_slot.val;
-    }
-    else {
-        HashMapKeyVal *kv = &kv_slot;
-        while (kv->chain != NULL) {
-            kv = kv->chain;
-            if (kv->key == key) {
-                return kv->val;
-            }
-        }
-    }
-
-    return 0;
-}
-inline
-u64 MapGet(HashMap *map, Str skey) {
-    return MapGet(map, HashStringValue(skey));
-}
-
-bool MapRemove(HashMap *map, u64 key, void *val) {
-    u32 slot = Hash(key) % map->slots.len;
-    HashMapKeyVal kv_slot = map->slots.lst[slot];
-
-    if (kv_slot.key == key) {
-        map->slots.lst[slot] = {};
-        return true;
-    }
-    else {
-        HashMapKeyVal *kv_prev = map->slots.lst + slot;
-        HashMapKeyVal *kv = kv_slot.chain;
-        while (kv != NULL) {
-            if (kv->key == key) {
-                kv_prev->chain = kv->chain;
-                *kv = {};
-                return true;
-            }
-            else {
-                kv_prev = kv;
-                kv = kv->chain;
-            }
-        }
-    }
-
-    return false;
-}
-
-*/
-
 
 
 //
