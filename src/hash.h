@@ -98,14 +98,11 @@ struct MapIter {
 };
 
 
-u64 MapPut(HashMap *map, u64 key, u64 val) {
-    // TODO: fill any leaks created by remove
-
+s64 MapPut(HashMap *map, u64 key, u64 val) {
     u64 len = (u64) map->slots.len;
     if (map->load == len) {
         map->overflows++;
-
-        return 0;
+        return -1;
     }
 
     // find the last keyval of the collision chain
@@ -121,7 +118,6 @@ u64 MapPut(HashMap *map, u64 key, u64 val) {
 
         // fint an empty slot
         while (slot->key != 0) {
-            // we know that there is an empty slow somewhere, so just do a circulare linear search
             slot++;
 
             // wrap-around
@@ -132,9 +128,6 @@ u64 MapPut(HashMap *map, u64 key, u64 val) {
 
         // set next-offset
         slot0->next = slot - slot0;
-        if (slot0->next) {
-            printf("setting next: %lu\n", slot0->next);
-        }
 
         // sanity check pointer are in range
         assert(slot >= map->slots.arr);
@@ -156,18 +149,25 @@ u64 MapPut(HashMap *map, u64 key, u64 val) {
 u64 MapGet(HashMap *map, u64 key) {
     u64 len = (u64) map->slots.len;
 
-    // iterate the collision chain, if any
+    // check the base slot
     KeyVal *slot = map->slots.arr + (key % len);
-    do {
+    if (slot->key == key) {
+        return slot->val;
+    }
+
+    // iterate the collision chain
+    while (slot->next) {
+        slot = slot + slot->next;
+
         if (slot->key == key) {
             return slot->val;
         }
     }
-    while (slot->next);
 
     // no takers
     return 0;
 }
+
 bool MapRemove(HashMap *map, u64 key, void *val) {
     u64 len = (u64) map->slots.len;
 

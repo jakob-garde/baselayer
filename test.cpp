@@ -307,22 +307,37 @@ void TestHashMap() {
 
     u32 nputs = 20;
     static u64 keys[20];
+    static u64 vals[20];
 
     for (u32 i = 0; i < nputs; ++i) {
         u64 key = RandMinMax64(0, UINT64_MAX -1);
         u64 val = RandMinMax64(0, UINT64_MAX -1);
 
-        keys[i] = key;
 
-        u64 index = MapPut(map, key, val);
+        s64 index = MapPut(map, key, val);
 
-        printf("MapPut() key: %lu, val: %lu, put-index: %lu\n", key, val, index);
+        if (index >= 0) {
+            keys[i] = key;
+            vals[i] = val;
+        }
+        else {
+            keys[i] = 0;
+            vals[i] = 0;
+        }
+
+        printf("MapPut() key: %lu, val: %lu, put-index: %ld\n", key, val, index);
     }
     map->Print();
+    printf("\n");
 
     for (u32 i = 0; i < nputs; ++i) {
         u64 key = keys[i];
         u64 val = MapGet(map, key);
+
+        if (vals[i] != val) {
+            printf("%lu %lu\n", vals[i], val);
+        }
+        assert(vals[i] == val);
 
         printf("MapGet() key: %lu, val: %lu\n", key, val);
     }
