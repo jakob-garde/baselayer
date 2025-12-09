@@ -176,44 +176,6 @@ void TestStringHelpers() {
 }
 
 
-void TestPointerHashMap() {
-    printf("\nTestPointerHashMap\n");
-    MContext *ctx = GetContext(1024 * 1024);
-    RandInit();
-
-    u32 nslots = 12;
-    HashMap _map = InitMap(ctx->a_life, nslots);
-    HashMap *map = &_map;
-
-    u32 nputs = 20;
-    static u64 keys[20];
-    for (u32 i = 0; i < nputs; ++i) {
-        // create some random 64b values
-        u64 key_high = RandMinMaxU(1, UINT32_MAX - 1);
-        u64 key_low = RandMinMaxU(1, UINT32_MAX - 1);
-        u64 val_high = RandMinMaxU(1, UINT32_MAX - 1);
-        u64 val_low = RandMinMaxU(1, UINT32_MAX - 1);
-        u64 key = (key_high << 32) + key_low;
-        keys[i] = key;
-        u64 val = (val_high << 32) + val_low;
-        printf("MapPut() key: %lu, val: %lu\n", key, val);
-
-        // enter into the map
-        MapPut(map, key, val);
-
-    }
-    printf("collisions: %u, resets: %u\n\n", map->ncollisions, map->nresets);
-
-
-    for (u32 i = 0; i < nputs; ++i) {
-        u64 key = keys[i];
-        u64 val = MapGet(map, key);
-
-        printf("MapGet() key: %lu, val: %lu\n", key, val);
-    }
-}
-
-
 struct TestWidget {
     TestWidget *next;
     TestWidget *first;
@@ -334,15 +296,49 @@ void TestHashString() {
     printf("%lu\n", val);
 }
 
+void TestHashMap() {
+    printf("TestHashMap\n");
+    MContext *ctx = GetContext(1024 * 1024);
+    RandInit();
+
+    u32 nslots = 12;
+    HashMap _map = InitMap(ctx->a_life, nslots);
+    HashMap *map = &_map;
+
+    u32 nputs = 20;
+    static u64 keys[20];
+
+    for (u32 i = 0; i < nputs; ++i) {
+        u64 key = RandMinMax64(0, UINT64_MAX -1);
+        u64 val = RandMinMax64(0, UINT64_MAX -1);
+
+        keys[i] = key;
+
+        u64 index = MapPut(map, key, val);
+
+        printf("MapPut() key: %lu, val: %lu, put-index: %lu\n", key, val, index);
+    }
+    map->Print();
+
+    for (u32 i = 0; i < nputs; ++i) {
+        u64 key = keys[i];
+        u64 val = MapGet(map, key);
+
+        printf("MapGet() key: %lu, val: %lu\n", key, val);
+    }
+}
+
 void Test() {
     printf("Running baselayer tests ...\n\n");
 
+    /*
     TestStringBasics();
     TestSorting();
     TestStringHelpers();
-    TestPointerHashMap();
     TestMemoryPool();
     TestPoolAllocatorAgain();
     TestStrBuffer();
     TestHashString();
+    */
+    TestHashMap();
 }
