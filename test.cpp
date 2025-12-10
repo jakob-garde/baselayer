@@ -293,7 +293,7 @@ void TestHashString() {
     val = HashStringValue("lambda_sample_blitarea");
     printf("%lu\n", val);
     val = HashStringValue("Detector_blitarea");
-    printf("%lu\n", val);
+    printf("%lu\n\n", val);
 }
 
 void TestHashMap() {
@@ -364,7 +364,6 @@ void TestHashMap() {
 void Test() {
     printf("Running baselayer tests ...\n\n");
 
-    /*
     TestStringBasics();
     TestSorting();
     TestStringHelpers();
@@ -372,6 +371,5 @@ void Test() {
     TestPoolAllocatorAgain();
     TestStrBuffer();
     TestHashString();
-    */
     TestHashMap();
 }

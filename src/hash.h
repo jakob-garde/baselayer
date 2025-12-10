@@ -21,6 +21,8 @@ u64 Hash64(u64 x) {
 #ifdef __arm__
     #warning "__arm__ detected: u64 typedef'd to 32bit"
     #define Hash Hash32
+
+    // TODO: 32bit version for HashDJB2 below
 #else
     #define Hash Hash64
 #endif
@@ -43,13 +45,14 @@ u64 HashDJB2(Str skey) {
 
 inline
 u64 HashStringValue(Str key) {
-    u64 hash = Hash( HashDJB2(key) );
+    u64 hash = HashDJB2(key);
     return hash;
 }
 
 inline
 u64 HashStringValue(const char *key) {
-    return HashStringValue( StrL(key) );
+    u64 hash = HashDJB2( StrL(key) );
+    return hash;
 }
 
 
@@ -262,17 +265,25 @@ s64 MapRemove(HashMap *map, u64 key) {
 }
 
 // wrappers
-bool MapPut(HashMap *map, void *key, void *val) {
-    return false;
+inline
+s64 MapPut(HashMap *map, void *key, void *val) {
+    return MapPut(map, (u64) key, (u64) val);
 }
-bool MapPut(HashMap *map, u64 key, void *val) {
-    return false;
+inline
+s64 MapPut(HashMap *map, u64 key, void *val) {
+    return MapPut(map, key, (u64) val);
 }
-bool MapPut(HashMap *map, Str skey, void *val) {
-    return false;
+inline
+s64 MapPut(HashMap *map, Str skey, void *val) {
+    return MapPut(map, HashStringValue(skey), (u64) val);
 }
+inline
 u64 MapGet(HashMap *map, Str skey) {
-    return 0;
+    return MapGet(map, HashStringValue(skey));
+}
+inline
+s64 MapRemove(HashMap *map, Str skey) {
+    return MapRemove(map, HashStringValue(skey));
 }
 
 
