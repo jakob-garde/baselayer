@@ -73,6 +73,12 @@ struct HashMap {
     void Print() {
         printf("load: %u, collisions: %u, overflows: %u\n", load, collisions, overflows);
     }
+    void PrintElements() {
+        for (s32 i = 0; i < slots.len; ++i) {
+            KeyVal kv = slots.arr[i];
+            printf("%d: key: %lu, val: %lu, next: %ld\n", i, kv.key, kv.val, kv.next);
+        }
+    }
 };
 
 HashMap InitMap(MArena *a_dest, u32 nslots = 1023) {
@@ -95,19 +101,24 @@ struct MapIter {
 };
 
 s64 MapPut(HashMap *map, u64 key, u64 val) {
+    assert(key != 0);
+
     u64 len = (u64) map->slots.len;
+
+    // full-guard
     if (map->load == len) {
         map->overflows++;
         return -1;
     }
 
-    // find the last keyval of the collision chain
     KeyVal *slot0 = map->slots.arr + (key % len);
     KeyVal *slot;
 
     if (slot0->next || slot0->key) {
         map->collisions++;
-        while (slot0->next) {
+
+        // find the end of the collision chain
+        while (slot0->next && slot0->key) {
             slot0 = slot0 + slot0->next;
         }
         slot = slot0;
@@ -122,8 +133,10 @@ s64 MapPut(HashMap *map, u64 key, u64 val) {
             }
         }
 
-        // set next-offset
-        slot0->next = slot - slot0;
+        // add to the collision chain
+        if (slot0 != slot) {
+            slot0->next = slot - slot0;
+        }
 
         // sanity check pointer are in range
         assert(slot >= map->slots.arr);
@@ -143,20 +156,28 @@ s64 MapPut(HashMap *map, u64 key, u64 val) {
 }
 
 u64 MapGet(HashMap *map, u64 key) {
+    if (key == 0) {
+        return 0;
+    }
     u64 len = (u64) map->slots.len;
 
     // check the base slot
     KeyVal *slot = map->slots.arr + (key % len);
+
     if (slot->key == key) {
         return slot->val;
     }
 
     // iterate the collision chain
+    s64 key_stop = slot->key;
     while (slot->next) {
         slot = slot + slot->next;
 
         if (slot->key == key) {
             return slot->val;
+        }
+        else if (slot->key == key_stop) {
+            break;
         }
     }
 
@@ -177,12 +198,16 @@ s64 MapGetIndex(HashMap *map, u64 key, s64 *prev_idx) {
     }
 
     // iterate the collision chain
+    s64 key_stop = slot->key;
     while (slot->next) {
         *prev_idx = slot - map->slots.arr;
         slot = slot + slot->next;
 
         if (slot->key == key) {
             return slot - map->slots.arr;
+        }
+        else if (slot->key == key_stop) {
+            break;
         }
     }
 
@@ -206,31 +231,26 @@ s64 MapRemove(HashMap *map, u64 key) {
 
         if (prev_idx == -1) {
             if (remove->next == 0) {
-                printf("simple branch\n");
                 *remove = {};
             }
             else {
-                KeyVal *next = remove + remove->next;
-                printf("swap branch load %u remove->next: %ld, next->next: %ld\n", map->load, remove->next, next->next);
-                remove->key = next->key;
-                remove->val = next->val;
-                remove->next += next->next;
-                KeyVal *next_next = remove + remove->next;
-                KeyVal *next_next_next = next_next + next_next->next;
-                *next = {};
-
+                // this slot can be re-used, preverving next
+                remove->key = 0;
+                remove->val = 0;
+                remove->next;
             }
         }
         else {
             KeyVal *prev = map->slots.arr + prev_idx;
             assert(prev->next + prev_idx == remove - map->slots.arr);
+            if (prev->key == 0 && prev->val == 0) {
+                assert(prev->next);
+            }
 
             if (remove->next) {
-                printf("chain branch a\n");
                 prev->next += remove->next;
             }
             else {
-                printf("chain branch b\n");
                 prev->next = 0;
             }
             *remove = {};

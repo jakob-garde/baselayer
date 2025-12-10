@@ -299,8 +299,9 @@ void TestHashString() {
 void TestHashMap() {
     printf("TestHashMap\n");
     MContext *ctx = GetContext(1024 * 1024);
-    u32 seed = RandInit(980250771);
+    u32 seed = RandInit();
     printf("seed: %u\n", seed);
+    printf("doing %d iterations:\n\n", 1024);
 
     u32 nslots = 12;
     HashMap _map = InitMap(ctx->a_life, nslots);
@@ -311,61 +312,52 @@ void TestHashMap() {
     static u64 vals[20];
 
     s32 iter = 0;
-    while (true) {
-        printf("\niteration %d\n\n", iter++);
-        bool did_remove_once = false;
-        if (iter == 7) {
-            printf("her\n");
-        }
-
+    while (iter < 1024) {
         for (u32 i = 0; i < nputs; ++i) {
             u64 key = RandMinMax64(0, UINT64_MAX -1);
             u64 val = RandMinMax64(0, UINT64_MAX -1);
             s64 index = MapPut(map, key, val);
 
+            keys[i] = key;
             if (index >= 0) {
-                keys[i] = key;
                 vals[i] = val;
             }
             else {
-                keys[i] = 0;
                 vals[i] = 0;
             }
+            if (iter == 0) printf("MapPut() key: %lu, val: %lu, put-index: %ld\n", key, val, index);
 
-            printf("MapPut() key: %lu, val: %lu, put-index: %ld\n", key, val, index);
-
-            if ( i > 0 && (RandMinMaxU(i, 20) == 20) && (did_remove_once == false)) {
+            if ( i > 0 && (RandMinMaxU(i, 20) == 20) ) {
                 u64 rand_idx = RandMinMax64(0, i);
                 rand_idx = 0;
                 s64 remove_idx = MapRemove(map, keys[rand_idx]);
-                did_remove_once = true;
                 if (remove_idx == -1) {
-                    printf("did not remove key %lu at idx %ld\n", key, remove_idx);
+                    if (iter == 0) printf("did not remove key %lu at idx %ld\n", key, remove_idx);
                 }
                 else {
-                    printf("removed key        %lu at idx %ld\n", key, remove_idx);
+                    if (iter == 0) printf("removed key        %lu at idx %ld\n", key, remove_idx);
 
-                    keys[rand_idx] = 0;
                     vals[rand_idx] = 0;
                 }
-                printf("load: %u\n", map->load);
             }
         }
-        map->Print();
-        printf("\n");
+        if (iter == 0) map->Print();
+        if (iter == 0) printf("\n");
+        if (iter == 0) map->PrintElements();
 
         for (u32 i = 0; i < nputs; ++i) {
             u64 key = keys[i];
             u64 val = MapGet(map, key);
 
-            printf("MapGet() key: %lu, val: %lu\n", key, val);
+            if (iter == 0) printf("MapGet() key: %lu, val: %lu\n", key, val);
             if (vals[i] != val) {
-                printf("%u: expected: %lu, got: %lu\n", i, vals[i], val);
+                if (iter == 0) printf("%u: expected: %lu, got: %lu\n", i, vals[i], val);
             }
             assert(vals[i] == val);
         }
 
         MapClear(map);
+        iter++;
     }
 }
 
