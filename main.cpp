@@ -4,7 +4,7 @@
 
 int main (int argc, char **argv) {
     TimeProgram;
-    bool force_tests = true;
+    bool force_tests = false;
 
     if (CLAContainsArg("--help", argc, argv)) {
         printf("Usage: ./baselayer <args>\n");

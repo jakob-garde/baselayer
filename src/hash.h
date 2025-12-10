@@ -120,8 +120,16 @@ s64 MapPut(HashMap *map, u64 key, u64 val) {
     if (slot0->next || slot0->key) {
         map->collisions++;
 
-        // find the end of the collision chain
+        // find the end of the collision chain - or overwrite at matching key within the chain
         while (slot0->next && slot0->key) {
+
+            if (slot0->key == key) {
+                // overwrite
+                slot0->val = val;
+
+                return slot - map->slots.arr;
+            }
+
             slot0 = slot0 + slot0->next;
         }
         slot = slot0;
@@ -228,40 +236,29 @@ s64 MapRemove(HashMap *map, u64 key) {
         return -1;
     }
 
-    else {
-        KeyVal *remove = map->slots.arr + remove_idx;
-        assert(remove->key == key);
+    KeyVal *remove = map->slots.arr + remove_idx;
+    assert(remove->key == key);
 
-        if (prev_idx == -1) {
-            if (remove->next == 0) {
-                *remove = {};
-            }
-            else {
-                // this slot can be re-used, preverving next
-                remove->key = 0;
-                remove->val = 0;
-                remove->next;
-            }
+    if (prev_idx >= 0) {
+        KeyVal *prev = map->slots.arr + prev_idx;
+        assert(prev->next + prev_idx == remove - map->slots.arr);
+
+        if (prev->key == 0 && prev->val == 0) {
+            assert(prev->next);
+        }
+        if (remove->next) {
+            prev->next += remove->next;
         }
         else {
-            KeyVal *prev = map->slots.arr + prev_idx;
-            assert(prev->next + prev_idx == remove - map->slots.arr);
-            if (prev->key == 0 && prev->val == 0) {
-                assert(prev->next);
-            }
-
-            if (remove->next) {
-                prev->next += remove->next;
-            }
-            else {
-                prev->next = 0;
-            }
-            *remove = {};
+            prev->next = 0;
         }
-
-        map->load--;
-        return remove_idx;
     }
+
+    remove->key = 0;
+    remove->val = 0;
+    map->load--;
+
+    return remove_idx;
 }
 
 // wrappers
